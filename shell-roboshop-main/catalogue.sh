@@ -1,6 +1,5 @@
 #!/bin/bash
 
-START_TIME=$(date +%s)
 USERID=$(id -u)
 R="\e[31m"
 G="\e[32m"
@@ -55,26 +54,36 @@ fi
 mkdir -p /app 
 VALIDATE $? "Creating app directory"
 
-curl -o /tmp/user.zip https://roboshop-artifacts.s3.amazonaws.com/user-v3.zip &>>$LOG_FILE
-VALIDATE $? "Downloading user"
+curl -o /tmp/catalogue.zip https://roboshop-artifacts.s3.amazonaws.com/catalogue-v3.zip &>>$LOG_FILE
+VALIDATE $? "Downloading Catalogue"
 
 rm -rf /app/*
 cd /app 
-unzip /tmp/user.zip &>>$LOG_FILE
-VALIDATE $? "unzipping user"
+unzip /tmp/catalogue.zip &>>$LOG_FILE
+VALIDATE $? "unzipping catalogue"
 
 npm install &>>$LOG_FILE
 VALIDATE $? "Installing Dependencies"
 
-cp $SCRIPT_DIR/user.service /etc/systemd/system/user.service
-VALIDATE $? "Copying user service"
+cp $SCRIPT_DIR/catalogue.service /etc/systemd/system/catalogue.service
+VALIDATE $? "Copying catalogue service"
 
 systemctl daemon-reload &>>$LOG_FILE
-systemctl enable user  &>>$LOG_FILE
-systemctl start user
-VALIDATE $? "Starting user"
+systemctl enable catalogue  &>>$LOG_FILE
+systemctl start catalogue
+VALIDATE $? "Starting Catalogue"
 
-END_TIME=$(date +%s)
-TOTAL_TIME=$(( $END_TIME - $START_TIME ))
+cp $SCRIPT_DIR/mongo.repo /etc/yum.repos.d/mongo.repo 
+dnf install mongodb-mongosh -y &>>$LOG_FILE
+VALIDATE $? "Installing MongoDB Client"
 
-echo -e "Script exection completed successfully, $Y time taken: $TOTAL_TIME seconds $N" | tee -a $LOG_FILE
+STATUS=$(mongosh --host mongodb.daws84s.site --eval 'db.getMongo().getDBNames().indexOf("catalogue")')
+if [ $STATUS -lt 0 ]
+then
+    mongosh --host mongodb.daws84s.site </app/db/master-data.js &>>$LOG_FILE
+    VALIDATE $? "Loading data into MongoDB"
+else
+    echo -e "Data is already loaded ... $Y SKIPPING $N"
+fi
+
+

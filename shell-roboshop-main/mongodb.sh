@@ -1,6 +1,5 @@
 #!/bin/bash
 
-START_TIME=$(date +%s)
 USERID=$(id -u)
 R="\e[31m"
 G="\e[32m"
@@ -9,7 +8,6 @@ N="\e[0m"
 LOGS_FOLDER="/var/log/roboshop-logs"
 SCRIPT_NAME=$(echo $0 | cut -d "." -f1)
 LOG_FILE="$LOGS_FOLDER/$SCRIPT_NAME.log"
-SCRIPT_DIR=$PWD
 
 mkdir -p $LOGS_FOLDER
 echo "Script started executing at: $(date)" | tee -a $LOG_FILE
@@ -23,9 +21,6 @@ else
     echo "You are running with root access" | tee -a $LOG_FILE
 fi
 
-echo "Please enter root password to setup"
-read -s MYSQL_ROOT_PASSWORD
-
 # validate functions takes input as exit status, what command they tried to install
 VALIDATE(){
     if [ $1 -eq 0 ]
@@ -37,19 +32,20 @@ VALIDATE(){
     fi
 }
 
-dnf install mysql-server -y &>>$LOG_FILE
-VALIDATE $? "Installing MySQL server"
+cp mongo.repo /etc/yum.repos.d/mongodb.repo
+VALIDATE $? "Copying MongoDB repo"
 
-systemctl enable mysqld &>>$LOG_FILE
-VALIDATE $? "Enabling MySQL"
+dnf install mongodb-org -y &>>$LOG_FILE
+VALIDATE $? "Installing mongodb server"
 
-systemctl start mysqld   &>>$LOG_FILE
-VALIDATE $? "Starting MySQL"
+systemctl enable mongod &>>$LOG_FILE
+VALIDATE $? "Enabling MongoDB"
 
-mysql_secure_installation --set-root-pass $MYSQL_ROOT_PASSWORD &>>$LOG_FILE
-VALIDATE $? "Setting MySQL root password"
+systemctl start mongod &>>$LOG_FILE
+VALIDATE $? "Starting MongoDB"
 
-END_TIME=$(date +%s)
-TOTAL_TIME=$(( $END_TIME - $START_TIME ))
+sed -i 's/127.0.0.1/0.0.0.0/g' /etc/mongod.conf
+VALIDATE $? "Editing MongoDB conf file for remote connections"
 
-echo -e "Script exection completed successfully, $Y time taken: $TOTAL_TIME seconds $N" | tee -a $LOG_FILE
+systemctl restart mongod &>>$LOG_FILE
+VALIDATE $? "Restarting MongoDB"
