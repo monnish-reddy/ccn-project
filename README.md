@@ -1,4 +1,4 @@
-# RoboShop Microservices Application (IBM Based)
+# RoboShop Microservices Application 
 
 This project is a full microservices-based **RoboShop Application**, the  
 The platform allows users to browse products, view robot details, add items to cart, and complete the purchase through a fully decoupled microservices ecosystem.
