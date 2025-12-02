@@ -1,14 +1,12 @@
 [Unit]
-Description = Catalogue Service
+Description=Catalogue Service
 
 [Service]
 User=roboshop
-
-// highlight-start
-Environment=MONGO="mongodb://mongodb.monnish.com:27017/catalogue"
-// highlight-end
+Environment="MONGO=mongodb://mongodb.monnish.com:27017/catalogue"
 ExecStart=/bin/node /app/server.js
 SyslogIdentifier=catalogue
+Restart=always
 
 [Install]
 WantedBy=multi-user.target
